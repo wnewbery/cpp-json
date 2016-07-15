@@ -1,0 +1,11 @@
+/.vs
+/Debug
+/Intermediate
+/Win32-Debug
+/Win32-Release
+/x64-Debug
+/x64-Release
+/cpp-json-ut.vcxproj.user
+/cpp-json.VC.db
+/cpp-json.VC.VC.opendb
+/third_party/boost

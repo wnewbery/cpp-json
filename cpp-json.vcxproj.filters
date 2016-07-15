@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{de6900ba-b1a8-4fa4-bd29-69718062f9ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{361ac585-4ab3-446a-9e7b-986ac3310c88}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\json\Parser.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\json\Token.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="include\json\Reader.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
