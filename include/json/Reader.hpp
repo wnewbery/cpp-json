@@ -348,9 +348,9 @@ namespace json
                 tok = parser.next();
                 if (tok.type != Token::KEY_SEP) throw ParseError("Expected ':'");
                 //read field
-                if (visited[field->second.index]) throw ParseError("Duplicate key " + key);
                 if (field != fields.end())
                 {
+                    if (visited[field->second.index]) throw ParseError("Duplicate key " + key);
                     field->second.read(parser, out);
                     visited[field->second.index] = true;
                     ++count;
@@ -368,6 +368,3 @@ namespace json
         Fields fields;
     };
 }
-
-/**Macro for ObjectFieldReader::add*/
-#define JSON_READER_FIELD(type, field) add<decltype(type::field), &type::field>(#type)

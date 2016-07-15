@@ -12,10 +12,40 @@ struct MyType
 inline void read_json(Parser &parser, MyType *val)
 {
     static const auto reader = ObjectFieldReader<MyType>().
-        JSON_READER_FIELD(MyType, x).
-        JSON_READER_FIELD(MyType, y).
-        JSON_READER_FIELD(MyType, z);
+        add<decltype(MyType::x), &MyType::x>("x").
+        add<decltype(MyType::y), &MyType::y>("y").
+        add<decltype(MyType::z), &MyType::z>("z");
 
+    reader.read(parser, val);
+}
+
+//more complex types
+template<typename T>
+struct ResponsePage
+{
+    size_t first;
+    size_t total;
+    std::vector<T> data;
+};
+template<typename T> void read_json(Parser &parser, ResponsePage<T> *val)
+{
+    static const auto reader = ObjectFieldReader<ResponsePage<T>>().
+        add<decltype(ResponsePage<T>::first), &ResponsePage<T>::first>("first").
+        add<decltype(ResponsePage<T>::total), &ResponsePage<T>::total>("total").
+        add<decltype(ResponsePage<T>::data), &ResponsePage<T>::data>("data");
+    reader.read(parser, val);
+}
+
+struct Comment
+{
+    std::string author;
+    std::string text;
+};
+inline void read_json(Parser &parser, Comment *val)
+{
+    static const auto reader = ObjectFieldReader<Comment, IgnoreUnknown>().
+        add<decltype(Comment::author), &Comment::author>("author").
+        add<decltype(Comment::text), &Comment::text>("text");
     reader.read(parser, val);
 }
 
@@ -69,6 +99,31 @@ BOOST_AUTO_TEST_CASE(obj)
         BOOST_CHECK_EQUAL(1, vec[1].x);
         BOOST_CHECK_EQUAL(2, vec[1].y);
         BOOST_CHECK_EQUAL(3, vec[1].z);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(obj_complex)
+{
+    std::string json =
+        "{"
+        "   \"total\": 102,"
+        "   \"first\": 100,"
+        "   \"data\": ["
+        "       {\"author\": \"Ben\", \"text\": \"Hi\"},"
+        "       {\"author\": \"Tim\", \"text\": \"Hi Ben\", \"admin\": true}"
+        "   ]"
+        "}";
+    auto comments = read_json<ResponsePage<Comment>>(json);
+
+    BOOST_CHECK_EQUAL(100, comments.first);
+    BOOST_CHECK_EQUAL(102, comments.total);
+    BOOST_CHECK_EQUAL(2, comments.data.size());
+    if (comments.data.size() == 2)
+    {
+        BOOST_CHECK_EQUAL("Ben", comments.data[0].author);
+        BOOST_CHECK_EQUAL("Hi", comments.data[0].text);
+        BOOST_CHECK_EQUAL("Tim", comments.data[1].author);
+        BOOST_CHECK_EQUAL("Hi Ben", comments.data[1].text);
     }
 }
 
