@@ -224,7 +224,7 @@ namespace json
     }
 
     /**Skip past the next value. Works for objects and arrays. */
-    void skip_value(Parser &parser)
+    inline void skip_value(Parser &parser)
     {
         size_t depth = 0;
         do
