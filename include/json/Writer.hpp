@@ -4,6 +4,14 @@
 #include <sstream>
 namespace json
 {
+    /**@brief Writes JSON tokens to a string buffer.
+     * 
+     * Provides methods to write the basic JSON primitives,
+     * and the key, and prop helpers for writing key-value's in objects.
+     * 
+     * The template method value<T> calls write_json. Users may provide overloads of write_json
+     * for custom types, and ADL will be used to call them.
+     */
     class Writer
     {
     public:
@@ -15,6 +23,7 @@ namespace json
 
         void start_arr()
         {
+            check_first();
             put('[');
             first_el = true;
         }
@@ -26,6 +35,7 @@ namespace json
 
         void start_obj()
         {
+            check_first();
             put('{');
             first_el = true;
         }
@@ -33,17 +43,6 @@ namespace json
         {
             put('}');
             first_el = false;
-        }
-
-        void key(const char *str)
-        {
-            do_value(str);
-            put(':');
-            first_el = true;
-        }
-        void key(const std::string &str)
-        {
-            key(str.c_str());
         }
 
         void null()
@@ -73,6 +72,54 @@ namespace json
             check_first();
             buf += std::to_string(x);
         }
+        void do_value(const char *str)
+        {
+            check_first();
+            put('"');
+            for (; *str; ++str) do_str_chr(*str);
+            put('"');
+        }
+
+        /**Writes a string followed by a ':'.*/
+        void key(const char *str)
+        {
+            do_value(str);
+            put(':');
+            first_el = true;
+        }
+        void key(const std::string &str)
+        {
+            key(str.c_str());
+        }
+
+        /**Writes an object property as a string, ':', then using write_json to write the value.*/
+        template<class T> void prop(const char *str, T &&val)
+        {
+            key(str);
+            value(std::forward<T>(val));
+        }
+        template<class T> void prop(const std::string &str, T &&val)
+        {
+            key(str);
+            value(std::forward<T>(val));
+        }
+
+        /**Writes a value by forwarding to a write_json overload.*/
+        template<typename T> void value(const T &v)
+        {
+            write_json(*this, v);
+        }
+    private:
+        std::string buf;
+        /**First array or object member.*/
+        bool first_el;
+
+        void check_first()
+        {
+            if (first_el) first_el = false;
+            else put(',');
+        }
+        void put(char c) { buf += c; }
         void do_str_chr(char c)
         {
             switch (c)
@@ -87,52 +134,18 @@ namespace json
             default: put(c); break;
             }
         }
-        void do_value(const char *str)
-        {
-            check_first();
-            put('"');
-            for (; *str; ++str) do_str_chr(*str);
-            put('"');
-        }
-
-        template<class T> void prop(const char *str, T &&val)
-        {
-            key(str);
-            value(std::forward<T>(val));
-        }
-        template<class T> void prop(const std::string &str, T &&val)
-        {
-            key(str);
-            value(std::forward<T>(val));
-        }
-
-        template<typename T> void value(T &&v)
-        {
-            write_json(*this, std::forward<T>(v));
-        }
-    private:
-        std::string buf;
-        /**First array or object member.*/
-        bool first_el;
-
-        void check_first()
-        {
-            if (first_el) first_el = false;
-            else put(',');
-        }
-        void put(char c) { buf += c; }
     };
 
     namespace detail
     {
-        template<class T>
+        template<typename T>
         auto is_iterable_impl(int) -> decltype(
             begin(std::declval<T&>()) == end(std::declval<T&>()),
             *begin(std::declval<T&>()),
             ++begin(std::declval<T&>()),
             std::true_type{}
         );
-        template<class T>
+        template<typename T>
         std::false_type is_iterable_impl(...);
 
         /**Consider an object iterable, if the following are valid:
@@ -146,13 +159,13 @@ namespace json
         * The decltype will only be valid, resolving to std::true_type if the listed operations
         * are valid.
         */
-        template <class T> struct is_iterable : public decltype(is_iterable_impl<T>(0)) {};
+        template <typename T> struct is_iterable : public decltype(is_iterable_impl<T>(0)) {};
 
         using std::to_string;
-        template<class T> auto has_to_string_impl(int) -> decltype(to_string(std::declval<T>()));
-        template<class T> std::false_type has_to_string_impl(...);
+        template<typename T> auto has_to_string_impl(int) -> decltype(to_string(std::declval<T>()));
+        template<typename T> std::false_type has_to_string_impl(...);
         /**to_string(T()) exists.*/
-        template<class T> struct has_to_string : public decltype(has_to_string_impl<T>(0)) {};
+        template<typename T> struct has_to_string : public decltype(has_to_string_impl<T>(0)) {};
 
     }
 
@@ -180,7 +193,7 @@ namespace json
      * 
      * iterable may be any value that can be used with the C++11 range-based for loop.
      */
-    template<class T> void write_json_array(Writer &writer,  const T &iterable)
+    template<typename T> void write_json_array(Writer &writer,  const T &iterable)
     {
         writer.start_arr();
         for (auto &i : iterable)
@@ -189,29 +202,39 @@ namespace json
         }
         writer.end_arr();
     }
-    /**Template write_json for any array type.*/
-    template<class T, typename std::enable_if<detail::is_iterable<T>::value>::type * = nullptr>
+    /**Template write_json for any array type using write_json_array.*/
+    template<typename T, typename std::enable_if<detail::is_iterable<T>::value>::type * = nullptr>
     void write_json(Writer &writer, const T &iterable)
     {
         write_json_array(writer, iterable);
     }
     /**Template overload for pointers.*/
-    template<class T> void write_json(Writer &writer, const T *val)
+    template<typename T> void write_json(Writer &writer, const T *val)
     {
         if (val) write_json(writer, *val);
         else writer.null();
     }
-    template<class T> void write_json(Writer &writer, T *val)
+    template<typename T> void write_json(Writer &writer, T *val)
     {
         write_json<T>(writer, (const T*)val);
     }
     /**Basic template JSON writer. This default template converts the value to a string
       * via to_string, then writes that as a JSON string.
     */
-    template<class T, typename std::enable_if<detail::has_to_string<T>::value>::type * = nullptr>
+    template<typename T, typename std::enable_if<detail::has_to_string<T>::value>::type * = nullptr>
     void write_json(Writer &writer, const T &val)
     {
         using std::to_string;
         writer.value_string(to_string(val));
+    }
+
+    /**Converts some object to a JSON string, by creating a Writer then calling Writer::value on
+     * it and returning the string buffer.
+     */
+    template<typename T> std::string to_json(const T &obj)
+    {
+        Writer writer;
+        writer.value(obj);
+        return std::move(writer.str());
     }
 }
