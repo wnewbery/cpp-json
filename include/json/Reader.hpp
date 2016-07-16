@@ -229,7 +229,11 @@ namespace json
         size_t depth = 0;
         do
         {
-            switch (parser.next().type)
+            auto tok = parser.next();
+            //this is less than ideal as allows for some invalid JSON
+            //but as not tracking if currently in an array or object, this switch
+            //cant tell the legality of various tokens
+            switch (tok.type)
             {
             case Token::ARR_START:
             case Token::OBJ_START:
@@ -239,6 +243,9 @@ namespace json
             case Token::OBJ_END:
                 if (depth == 0) throw ParseError("Expected object or array end");
                 --depth;
+                break;
+            case Token::ELEMENT_SEP:
+            case Token::KEY_SEP:
                 break;
             case Token::TRUE_VAL:
             case Token::FALSE_VAL:
