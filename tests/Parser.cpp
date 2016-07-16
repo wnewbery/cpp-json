@@ -80,6 +80,7 @@ BOOST_AUTO_TEST_CASE(strings)
     CHECK_BYTES_EQUAL(u8"\u00A3F", parse_single("\"\\u00a3F\"").str);
 
 
+    CHECK_BYTES_EQUAL(u8"\u2211", parse_single("\"\\u2211\"").str);
     CHECK_BYTES_EQUAL(u8"\U0010FFFF", parse_single("\"\\uDBFF\\uDFFF\"").str);
 
     BOOST_CHECK_THROW(parse_single("\"\\uDBFF\""), ParseError); // missing low

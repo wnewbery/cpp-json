@@ -267,7 +267,7 @@ namespace json
             }
             else //11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
             {
-                assert(cp < 0x110000); // Thew maximun allowed surrogate pairs give 0x10FFFF so this cant happen
+                assert(cp < 0x110000); // The maximun allowed surrogate pairs give 0x10FFFF so this cant happen
                 *buf += (char)(0b11110000 | (cp >> 18));
                 *buf += (char)(0b10000000 | ((cp >> 12) & 0b00111111));
                 *buf += (char)(0b10000000 | ((cp >>  6) & 0b00111111));
