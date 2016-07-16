@@ -54,9 +54,23 @@ BOOST_AUTO_TEST_SUITE(TestReader)
 BOOST_AUTO_TEST_CASE(primitives)
 {
     BOOST_CHECK_EQUAL(100, read_json<int>("100"));
+    BOOST_CHECK_THROW(read_json<char>("500"), std::out_of_range);
+    BOOST_CHECK_THROW(read_json<char>("50.5"), std::invalid_argument);
+    BOOST_CHECK_THROW(read_json<int>("true"), ParseError);
+
+    BOOST_CHECK_THROW(read_json<unsigned char>("500"), std::out_of_range);
+    BOOST_CHECK_THROW(read_json<unsigned char>("-1"), std::out_of_range);
+    BOOST_CHECK_THROW(read_json<unsigned char>("50.5"), std::invalid_argument);
+    BOOST_CHECK_THROW(read_json<unsigned>("true"), ParseError);
+
     BOOST_CHECK_EQUAL(100.5, read_json<float>("100.5"));
+    BOOST_CHECK_THROW(read_json<float>("true"), ParseError);
+
+
     BOOST_CHECK_EQUAL(true, read_json<bool>("true"));
     BOOST_CHECK_EQUAL(false, read_json<bool>("false"));
+    BOOST_CHECK_THROW(read_json<bool>("5"), ParseError);
+
     BOOST_CHECK_EQUAL("Hello World", read_json<std::string>("\"Hello World\""));
 }
 
@@ -64,10 +78,28 @@ BOOST_AUTO_TEST_CASE(arr)
 {
     const int numbers[] = {10, 15, -5, 1};
     std::vector<int> parsed;
-    read_json("[10, 15, -5,1]", &parsed);
+    BOOST_CHECK_NO_THROW(read_json("[10, 15, -5,1]", &parsed));
     BOOST_CHECK_EQUAL_COLLECTIONS(
         numbers, numbers + sizeof(numbers) / sizeof(numbers[0]),
         parsed.begin(), parsed.end());
+
+    parsed.clear();
+    BOOST_CHECK_NO_THROW(read_json("[]", &parsed));
+    BOOST_CHECK(parsed.empty());
+
+    parsed.clear();
+    BOOST_CHECK_NO_THROW(read_json("[1]", &parsed));
+    BOOST_CHECK_EQUAL(1, parsed.size());
+    if (parsed.size() == 1) BOOST_CHECK_EQUAL(1, parsed[0]);
+
+
+    BOOST_CHECK_THROW(read_json("5", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("[", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("[,", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("[5,", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("[5,]", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("[5}", &parsed), ParseError);
+
 }
 
 BOOST_AUTO_TEST_CASE(map)
@@ -77,6 +109,23 @@ BOOST_AUTO_TEST_CASE(map)
     BOOST_CHECK_EQUAL(2, parsed.size());
     BOOST_CHECK_EQUAL(10, parsed["a"]);
     BOOST_CHECK_EQUAL(5, parsed["b"]);
+
+    parsed.clear();
+    BOOST_CHECK_NO_THROW(read_json("{}", &parsed));
+    BOOST_CHECK(parsed.empty());
+
+    parsed.clear();
+    BOOST_CHECK_NO_THROW(read_json("{\"a\": 6}", &parsed));
+    BOOST_CHECK_EQUAL(6, parsed["a"]);
+
+    BOOST_CHECK_THROW(read_json("5", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{,", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{5: 5}", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{\"a\"", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{\"a\":", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{\"a\":5", &parsed), ParseError);
+    BOOST_CHECK_THROW(read_json("{\"a\":5 ]", &parsed), ParseError);
 }
 
 BOOST_AUTO_TEST_CASE(obj)
@@ -85,6 +134,15 @@ BOOST_AUTO_TEST_CASE(obj)
     BOOST_CHECK_EQUAL(0, obj.x);
     BOOST_CHECK_EQUAL(10, obj.y);
     BOOST_CHECK_EQUAL(-5, obj.z);
+
+
+    BOOST_CHECK_THROW(read_json<MyType>("{\"x\": 0, \"y\": true, \"z\": -5}"), ParseError);
+    BOOST_CHECK_THROW(read_json<MyType>("5"), ParseError);
+    BOOST_CHECK_THROW(read_json<MyType>("{}"), ParseError);
+    BOOST_CHECK_THROW(read_json<MyType>("{\"x\": 0, \"y\": 10}"), ParseError);
+    BOOST_CHECK_THROW(read_json<MyType>("{\"x\": 0, \"y\": 10, \"z\": -5, \"w\": 1}"), ParseError);
+    BOOST_CHECK_THROW(read_json<MyType>("{\"x\": 0, \"y\": 10, \"z\": -5, \"x\": 15}"), ParseError);
+    BOOST_CHECK_THROW(read_json<MyType>("{\"x\": 0, \"y\": 10, \"z\": -5, 7: 15}"), ParseError);
 
 
     auto vec = read_json<std::vector<MyType>>(

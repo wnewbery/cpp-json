@@ -36,6 +36,7 @@ namespace json
         Type type;
         std::string str;
 
+        Token() : type(END), str() {}
         Token(Type type) : type(type), str() {}
         Token(Type type, std::string &&str) : type(type), str(std::move(str)) {}
 

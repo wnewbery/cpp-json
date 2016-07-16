@@ -86,6 +86,8 @@ namespace json
     {
         auto tok = parser.next();
         if (tok.type != Token::ARR_START) throw ParseError("Expected array");
+        if (parser.try_next_arr_end()) return;
+
         do
         {
             T::value_type value;
@@ -103,6 +105,8 @@ namespace json
     {
         auto tok = parser.next();
         if (tok.type != Token::OBJ_START) throw ParseError("Expected object");
+        if (parser.try_next_obj_end()) return;
+
         do
         {
             auto key = read_json<std::string>(parser);
@@ -343,6 +347,7 @@ namespace json
             size_t count = 0;
             auto tok = parser.next();
             if (tok.type != Token::OBJ_START) throw ParseError("Expected object start");
+            if (parser.try_next_obj_end()) throw ParseError("Missing keys, unexpected empty object");
             do
             {
                 //key

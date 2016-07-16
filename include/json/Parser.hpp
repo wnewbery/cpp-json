@@ -65,6 +65,31 @@ namespace json
             default: parse_error("Unexpected content");
             }
         }
+
+        /**If the next token would be ARR_END, consume it and return true.*/
+        bool try_next_arr_end()
+        {
+            if (p > end) parse_error("Unexpected end of input");
+            skip_ws();
+            if (p < end && *p == ']')
+            {
+                ++p;
+                return true;
+            }
+            else return false;
+        }
+        /**If the next token would be OBJ_END, consume it and return true.*/
+        bool try_next_obj_end()
+        {
+            if (p > end) parse_error("Unexpected end of input");
+            skip_ws();
+            if (p < end && *p == '}')
+            {
+                ++p;
+                return true;
+            }
+            else return false;
+        }
     private:
         const char *begin, *p, *end;
         const char *line_start;
