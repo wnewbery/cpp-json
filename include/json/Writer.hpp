@@ -149,16 +149,16 @@ namespace json
         std::false_type is_iterable_impl(...);
 
         /**Consider an object iterable, if the following are valid:
-        *
-        *   - iterator = begin(T())
-        *   - iterator = end(T())
-        *   - iterator == iterator
-        *   - *iterator
-        *   - ++iterator
-        *
-        * The decltype will only be valid, resolving to std::true_type if the listed operations
-        * are valid.
-        */
+         *
+         *   - iterator = begin(T())
+         *   - iterator = end(T())
+         *   - iterator == iterator
+         *   - *iterator
+         *   - ++iterator
+         *
+         * The decltype will only be valid, resolving to std::true_type if the listed operations
+         * are valid.
+         */
         template <typename T> struct is_iterable : public decltype(is_iterable_impl<T>(0)) {};
 
         using std::to_string;

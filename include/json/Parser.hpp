@@ -151,11 +151,103 @@ namespace json
         {
             assert(*p == '"');
             ++p;
-            auto first = p;
-            while (p < end && *p != '"') ++p;
+            std::string buf;
+            while (p < end && *p != '"')
+            {
+                if (*p == '\\')
+                {
+                    if (++p == end) parse_error("End of string not found");
+                    switch (*p)
+                    {
+                    case 'n': buf += '\n'; ++p; break;
+                    case 'r': buf += '\r'; ++p; break;
+                    case '"': buf += '\"'; ++p; break;
+                    case 'b': buf += '\b'; ++p; break;
+                    case 'f': buf += '\f'; ++p; break;
+                    case 't': buf += '\t'; ++p; break;
+                    case '\'': buf += '\''; ++p; break;
+                    case '\\': buf += '\\'; ++p; break;
+                    case 'u': decode_unicode(&buf); break;
+                    }
+                }
+                else
+                {
+                    buf += *p;
+                    ++p;
+                }
+            }
             if (p == end) parse_error("End of string not found");
             ++p; // "
-            return { Token::STRING, { first, p - 1 }};
+            return { Token::STRING, std::move(buf)};
+        }
+
+        void decode_unicode(std::string *buf)
+        {
+            assert(*p == 'u');
+            ++p;
+            if (p + 4 > end) parse_error("Unexpected end");
+            //this is a slight pain because JSON always uses UTF-16, even in its escape codes
+            //so must deal with surrogate pairs to get a code point, then convert to utf-8
+            unsigned high = decode_unicode_utf16_el();
+            if (high <= 0xD7FF || high >= 0xE000) //single element
+            {
+                cp_to_utf8(high, buf);
+            }
+            else //surrogate pair
+            {
+                if (high >= 0xDC00) parse_error("Unexpected low surrogate");
+
+                if (p + 6 > end) parse_error("Unexpected end looking for second surrogate");
+                if (p[0] != '\\' || p[1] != 'u') parse_error("Expected \\uxxxx for second surrogate");
+                p += 2;
+                unsigned low = decode_unicode_utf16_el();
+                if (low < 0xDC00 || low > 0xDFFF) parse_error("Expected low surrogate");
+                unsigned cp = ((high - 0xD800) << 10) + (low - 0xDC00) + 0x10000;
+                cp_to_utf8(cp, buf);
+            }
+        }
+        unsigned decode_unicode_utf16_el()
+        {
+            unsigned cp =
+                (decode_hex(p[0]) << 12) |
+                (decode_hex(p[1]) <<  8) |
+                (decode_hex(p[2]) <<  4) |
+                (decode_hex(p[3]) <<  0);
+            p += 4;
+            return cp;
+        }
+        unsigned decode_hex(char c)
+        {
+            if (c >= '0' && c <= '9') return c - '0';
+            if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+            if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+            parse_error("Invalid hex digit");
+        }
+        void cp_to_utf8(unsigned cp, std::string *buf)
+        {
+            if (cp < 0x80) //0xxxxxxx
+            {
+                *buf += (char)cp;
+            }
+            else if (cp < 0x800) //110xxxxx 10xxxxxx
+            {
+                *buf += (char)(0b11000000 | (cp >> 6));
+                *buf += (char)(0b10000000 | ((cp >> 0) & 0b00111111));
+            }
+            else if (cp < 0x10000) //1110xxxx 10xxxxxx 10xxxxxx
+            {
+                *buf += (char)(0b11100000 | (cp >> 12));
+                *buf += (char)(0b10000000 | ((cp >> 6) & 0b00111111));
+                *buf += (char)(0b10000000 | ((cp >> 0) & 0b00111111));
+            }
+            else //11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+            {
+                assert(cp < 0x110000); // Thew maximun allowed surrogate pairs give 0x10FFFF so this cant happen
+                *buf += (char)(0b11110000 | (cp >> 18));
+                *buf += (char)(0b10000000 | ((cp >> 12) & 0b00111111));
+                *buf += (char)(0b10000000 | ((cp >>  6) & 0b00111111));
+                *buf += (char)(0b10000000 | ((cp >>  0) & 0b00111111));
+            }
         }
     };
 }

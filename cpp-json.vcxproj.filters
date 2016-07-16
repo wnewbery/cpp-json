@@ -18,5 +18,8 @@
     <ClInclude Include="include\json\Reader.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="include\json\Writer.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
