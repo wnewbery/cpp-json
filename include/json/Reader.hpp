@@ -55,14 +55,14 @@ namespace json
 
         template<typename T>
         auto has_push_back_impl(int) -> decltype(
-            std::declval<T>().push_back(std::declval<T::value_type>()),
+            std::declval<T>().push_back(std::declval<typename T::value_type>()),
             std::true_type{});
         template<typename T> std::false_type has_push_back_impl(...);
         template<typename T> struct has_push_back : public decltype(has_push_back_impl<T>(0)) {};
 
         template<typename T>
         auto has_kv_emplace_impl(int) -> decltype(
-            std::declval<T>().emplace(std::string(), std::declval<T::value_type::second_type>()),
+            std::declval<T>().emplace(std::string(), std::declval<typename T::value_type::second_type>()),
             std::true_type{});
         template<typename T> std::false_type has_kv_emplace_impl(...);
         template<typename T> struct has_kv_emplace : public decltype(has_kv_emplace_impl<T>(0)) {};
@@ -81,46 +81,6 @@ namespace json
         else throw ParseError("Expected integer");
     }
 
-    /**Read into a container that has push_back.*/
-    template<typename T> void read_json_array(Parser &parser, T *container)
-    {
-        auto tok = parser.next();
-        if (tok.type != Token::ARR_START) throw ParseError("Expected array");
-        if (parser.try_next_arr_end()) return;
-
-        do
-        {
-            T::value_type value;
-            read_json(parser, &value);
-            container->push_back(std::move(value));
-
-            tok = parser.next();
-        }
-        while (tok.type == Token::ELEMENT_SEP);
-        if (tok.type != Token::ARR_END) throw ParseError("Expected array end");
-    }
-
-    /**Read into a container that has emplace_back(str, val)*/
-    template<typename T> void read_json_map(Parser &parser, T *container)
-    {
-        auto tok = parser.next();
-        if (tok.type != Token::OBJ_START) throw ParseError("Expected object");
-        if (parser.try_next_obj_end()) return;
-
-        do
-        {
-            auto key = read_json<std::string>(parser);
-            tok = parser.next();
-            if (tok.type != Token::KEY_SEP) throw ParseError("Expected ':' object key-value seperator");
-
-            T::value_type::second_type value;
-            read_json(parser, &value);
-            container->emplace(std::move(key), std::move(value));
-
-            tok = parser.next();
-        } while (tok.type == Token::ELEMENT_SEP);
-        if (tok.type != Token::OBJ_END) throw ParseError("Expected object end");
-    }
 
     inline void read_json(Parser &parser, char *x)
     {
@@ -192,17 +152,7 @@ namespace json
         else throw ParseError("Expected string");
     }
 
-    template<typename T, typename std::enable_if<detail::has_push_back<T>::value>::type* = 0>
-    void read_json(Parser &parser, T *arr_container)
-    {
-        read_json_array(parser, arr_container);
-    }
-    template<typename T, typename std::enable_if<detail::has_kv_emplace<T>::value>::type* = 0>
-    void read_json(Parser &parser, T *map_container)
-    {
-        read_json_map(parser, map_container);
-    }
-
+    /**Read from JSON string into out. */
     template<typename T>
     void read_json(const std::string &json, T *out)
     {
@@ -212,6 +162,7 @@ namespace json
         if (end.type != Token::END) throw ParseError("Expected end");
     }
 
+    /**Read from JSON string into an instance of type T, and return it. */
     template<typename T>
     T read_json(const std::string &json)
     {
@@ -219,12 +170,66 @@ namespace json
         read_json(json, &tmp);
         return tmp;
     }
+    
+    /**Read from parser into an instance of type T, and return it. */
     template<typename T>
     T read_json(Parser &parser)
     {
         T tmp;
         read_json(parser, &tmp);
         return tmp;
+    }
+    
+    /**Read into a container that has push_back.*/
+    template<typename T> void read_json_array(Parser &parser, T *container)
+    {
+        auto tok = parser.next();
+        if (tok.type != Token::ARR_START) throw ParseError("Expected array");
+        if (parser.try_next_arr_end()) return;
+
+        do
+        {
+            typename T::value_type value;
+            read_json(parser, &value);
+            container->push_back(std::move(value));
+
+            tok = parser.next();
+        }
+        while (tok.type == Token::ELEMENT_SEP);
+        if (tok.type != Token::ARR_END) throw ParseError("Expected array end");
+    }
+
+    /**Read into a container that has emplace_back(str, val)*/
+    template<typename T> void read_json_map(Parser &parser, T *container)
+    {
+        auto tok = parser.next();
+        if (tok.type != Token::OBJ_START) throw ParseError("Expected object");
+        if (parser.try_next_obj_end()) return;
+
+        do
+        {
+            auto key = read_json<std::string>(parser);
+            tok = parser.next();
+            if (tok.type != Token::KEY_SEP) throw ParseError("Expected ':' object key-value seperator");
+
+            typename T::value_type::second_type value;
+            read_json(parser, &value);
+            container->emplace(std::move(key), std::move(value));
+
+            tok = parser.next();
+        } while (tok.type == Token::ELEMENT_SEP);
+        if (tok.type != Token::OBJ_END) throw ParseError("Expected object end");
+    }
+
+    template<typename T, typename std::enable_if<detail::has_push_back<T>::value>::type* = nullptr>
+    void read_json(Parser &parser, T *arr_container)
+    {
+        read_json_array(parser, arr_container);
+    }
+    template<typename T, typename std::enable_if<detail::has_kv_emplace<T>::value>::type* = nullptr>
+    void read_json(Parser &parser, T *map_container)
+    {
+        read_json_map(parser, map_container);
     }
 
     /**Skip past the next value. Works for objects and arrays. */
@@ -300,7 +305,7 @@ namespace json
         typedef typename Field::ReadField ReadField;
         typedef detail::Fields<T> Fields;
 
-        template <typename T, typename U, U T::*ptr>
+        template <typename U, U T::*ptr>
         static void do_read_field(Parser &parser, T *obj)
         {
             U *field = &(obj->*ptr);
@@ -330,7 +335,7 @@ namespace json
         template<typename U, U T::*ptr>
         ObjectFieldReader<T, ErrorPolicy, N + 1> add(const std::string &name)
         {
-            return add(name, do_read_field<T, U, ptr>);
+            return add(name, do_read_field<U, ptr>);
         }
 
         ObjectFieldReader<T, ErrorPolicy, N + 1> add(const std::string &name, ReadField read)
@@ -355,7 +360,7 @@ namespace json
                 if (tok.type != Token::STRING) throw ParseError("Expected string key");
                 auto key = std::move(tok.str);
                 //find field
-                auto &field = fields.find(key);
+                auto field = fields.find(key);
                 //':' seperator
                 tok = parser.next();
                 if (tok.type != Token::KEY_SEP) throw ParseError("Expected ':'");

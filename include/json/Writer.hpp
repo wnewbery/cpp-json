@@ -234,7 +234,7 @@ namespace json
     void write_json(Writer &writer, const T &val)
     {
         using std::to_string;
-        writer.value_string(to_string(val));
+        writer.do_value(to_string(val));
     }
 
     /**Converts some object to a JSON string, by creating a Writer then calling Writer::value on

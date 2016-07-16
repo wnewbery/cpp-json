@@ -29,10 +29,11 @@ struct ResponsePage
 };
 template<typename T> void read_json(Parser &parser, ResponsePage<T> *val)
 {
+    typedef ResponsePage<T> U;
     static const auto reader = ObjectFieldReader<ResponsePage<T>>().
-        add<decltype(ResponsePage<T>::first), &ResponsePage<T>::first>("first").
-        add<decltype(ResponsePage<T>::total), &ResponsePage<T>::total>("total").
-        add<decltype(ResponsePage<T>::data), &ResponsePage<T>::data>("data");
+        template add<decltype(U::first), &U::first>("first").
+        template add<decltype(U::total), &U::total>("total").
+        template add<decltype(U::data), &U::data>("data");
     reader.read(parser, val);
 }
 

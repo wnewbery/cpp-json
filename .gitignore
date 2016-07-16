@@ -9,3 +9,6 @@
 /cpp-json.VC.db
 /cpp-json.VC.VC.opendb
 /third_party/boost
+/obj
+/bin
+/coverage
