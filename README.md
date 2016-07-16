@@ -6,6 +6,7 @@ JSON parser built around a pull parser that yields single tokens, allowing for s
 
 This is similar to the Java `javax.json.stream.JsonParser` http://docs.oracle.com/javaee/7/api/javax/json/stream/JsonParser.html
 
+# Reading JSON
 
 The design also makes use of C++ templating techniques to maintain simple reader and writer API's.
 
@@ -85,4 +86,31 @@ A more complex example, including a reusable template component.
         "   ]"
         "}";
     auto comments = read_json<ResponsePage<Comment>>(json);
+
+# Writing JSON
+Converting objects to a JSON string is done by the `json::Writer` object, with the help with `void write_json(json::Writer&, const T &value)` overloads.
+
+And since dont need to worry about object key order, unknown keys or duplicates for output, these overloads are far simpler than the `read_json` ones.
+
+    template<typename T> void write_json(Writer &writer, const ResponsePage<T> &page)
+    {
+        writer.start_obj();
+        writer.prop("first", page.first);
+        writer.prop("total", page.total);
+        writer.prop("data", page.data);
+        writer.end_obj();
+    }
+    void write_json(Writer &writer, const Comment &comment)
+    {
+        writer.start_obj();
+        writer.prop("author", comment.author);
+        writer.prop("text", comment.text);
+        writer.end_obj();
+    }
+
+    ResponsePage<Comment> page = { 100, 102, {
+        { "Ben", "Hi" },
+        { "Tim", "Hi Ben"}
+    }};
+    std::string json_str = to_json(page);
 
