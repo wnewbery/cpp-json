@@ -49,7 +49,7 @@ inline void read_json(Parser &parser, Comment *val)
     reader.read(parser, val);
 }
 
-BOOST_AUTO_TEST_SUITE(TestParser)
+BOOST_AUTO_TEST_SUITE(TestReader)
 
 BOOST_AUTO_TEST_CASE(primitives)
 {

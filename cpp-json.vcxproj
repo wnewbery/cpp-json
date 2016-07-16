@@ -22,6 +22,7 @@
     <ClInclude Include="include\json\Parser.hpp" />
     <ClInclude Include="include\json\Reader.hpp" />
     <ClInclude Include="include\json\Token.hpp" />
+    <ClInclude Include="include\json\Writer.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{83A52FF0-C3B9-4F26-8535-DCA3C05B1CD2}</ProjectGuid>
