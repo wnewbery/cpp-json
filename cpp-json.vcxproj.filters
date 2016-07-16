@@ -21,5 +21,8 @@
     <ClInclude Include="include\json\Writer.hpp">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="include\json\Copy.hpp">
+      <Filter>include</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

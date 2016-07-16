@@ -45,10 +45,19 @@ namespace json
             first_el = false;
         }
 
+        /**Write a null value.*/
         void null()
         {
             check_first();
             buf += "null";
+        }
+        /**Write directly to buffer. Assumes the provided string is a valid value, and needs
+         * no processing.
+         */
+        void raw_value(const std::string &str)
+        {
+            check_first();
+            buf += str;
         }
         void do_value(bool b)
         {

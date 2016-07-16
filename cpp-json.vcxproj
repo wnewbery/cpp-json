@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\json\Copy.hpp" />
     <ClInclude Include="include\json\Parser.hpp" />
     <ClInclude Include="include\json\Reader.hpp" />
     <ClInclude Include="include\json\Token.hpp" />

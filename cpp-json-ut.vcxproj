@@ -154,6 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="tests\Copy.cpp" />
     <ClCompile Include="tests\Main.cpp" />
     <ClCompile Include="tests\Parser.cpp" />
     <ClCompile Include="tests\Reader.cpp" />
