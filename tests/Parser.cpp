@@ -25,6 +25,7 @@ BOOST_AUTO_TEST_CASE(test)
     BOOST_CHECK_EQUAL(Token::FALSE_VAL, parse_single("false").type);
     BOOST_CHECK_EQUAL(Token::NULL_VAL, parse_single("null").type);
     BOOST_CHECK_THROW(parse_single("x"), ParseError);
+    BOOST_CHECK_THROW(parse_single("trux"), ParseError);
     BOOST_CHECK_EQUAL(Token::NULL_VAL, parse_single("  \r\n\t\n   null").type);
 
     {

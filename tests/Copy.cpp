@@ -22,6 +22,7 @@ BOOST_AUTO_TEST_CASE(primitives)
     BOOST_CHECK_EQUAL("true", do_copy("true"));
     BOOST_CHECK_EQUAL("false", do_copy("false"));
     BOOST_CHECK_EQUAL("null", do_copy("null"));
+    BOOST_CHECK_EQUAL("\"Hello World\"", do_copy("\"Hello World\""));
 
     BOOST_CHECK_EQUAL("[]", do_copy("[]"));
     BOOST_CHECK_EQUAL("[5]", do_copy("[5]"));

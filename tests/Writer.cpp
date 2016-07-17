@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(single)
     BOOST_CHECK_EQUAL("5", write_single(ptr2));
 
 
-    BOOST_CHECK_EQUAL("\"Escaped \\b\\r\\n\\t\\\"\\\\n\"", write_single("Escaped \b\r\n\t\"\\n"));
+    BOOST_CHECK_EQUAL("\"Escaped \\b\\f\\r\\n\\t\\\"\\\\n\"", write_single("Escaped \b\f\r\n\t\"\\n"));
 }
 
 BOOST_AUTO_TEST_CASE(arr)

@@ -2,6 +2,7 @@
 #include "Reader.hpp"
 #include <unordered_map>
 #include <vector>
+#include <limits>
 
 using namespace json;
 struct MyType
@@ -52,7 +53,7 @@ inline void read_json(Parser &parser, Comment *val)
 
 BOOST_AUTO_TEST_SUITE(TestReader)
 
-BOOST_AUTO_TEST_CASE(primitives)
+BOOST_AUTO_TEST_CASE(integers)
 {
     BOOST_CHECK_EQUAL(100, read_json<int>("100"));
     BOOST_CHECK_THROW(read_json<char>("500"), std::out_of_range);
@@ -63,9 +64,40 @@ BOOST_AUTO_TEST_CASE(primitives)
     BOOST_CHECK_THROW(read_json<unsigned char>("-1"), std::out_of_range);
     BOOST_CHECK_THROW(read_json<unsigned char>("50.5"), std::invalid_argument);
     BOOST_CHECK_THROW(read_json<unsigned>("true"), ParseError);
+    
+    
+    BOOST_CHECK_EQUAL(127, read_json<char>("127"));
+    BOOST_CHECK_THROW(read_json<char>("128"), std::out_of_range);
+    BOOST_CHECK_EQUAL(32767, read_json<short>("32767"));
+    BOOST_CHECK_THROW(read_json<short>("32768"), std::out_of_range);
+    BOOST_CHECK_EQUAL(2147483647, read_json<int>("2147483647"));
+    BOOST_CHECK_THROW(read_json<int>("2147483648"), std::out_of_range);
+    BOOST_CHECK_EQUAL(9223372036854775807LL, read_json<long long>("9223372036854775807"));
+    BOOST_CHECK_THROW(read_json<long long>("9223372036854775808"), std::out_of_range);
+    BOOST_CHECK_EQUAL(std::numeric_limits<long>::max(),
+        read_json<long>(std::to_string(std::numeric_limits<long>::max())));
+    
+    
+    BOOST_CHECK_EQUAL(255, read_json<unsigned char>("255"));
+    BOOST_CHECK_THROW(read_json<unsigned char>("256"), std::out_of_range);
+    BOOST_CHECK_EQUAL(65535, read_json<unsigned short>("65535"));
+    BOOST_CHECK_THROW(read_json<unsigned short>("65536"), std::out_of_range);
+    BOOST_CHECK_EQUAL(4294967295, read_json<unsigned int>("4294967295"));
+    BOOST_CHECK_THROW(read_json<unsigned int>("4294967296"), std::out_of_range);
+    BOOST_CHECK_EQUAL(18446744073709551615ULL, read_json<unsigned long long>("18446744073709551615"));
+    BOOST_CHECK_THROW(read_json<unsigned long long>("18446744073709551616"), std::out_of_range);
+    BOOST_CHECK_EQUAL(std::numeric_limits<unsigned long>::max(),
+        read_json<unsigned long>(std::to_string(std::numeric_limits<unsigned long>::max())));
+}
+
+BOOST_AUTO_TEST_CASE(primitives)
+{
 
     BOOST_CHECK_EQUAL(100.5, read_json<float>("100.5"));
     BOOST_CHECK_THROW(read_json<float>("true"), ParseError);
+    
+    BOOST_CHECK_EQUAL(100.5, read_json<double>("100.5"));
+    BOOST_CHECK_THROW(read_json<double>("true"), ParseError);
 
 
     BOOST_CHECK_EQUAL(true, read_json<bool>("true"));
@@ -184,6 +216,24 @@ BOOST_AUTO_TEST_CASE(obj_complex)
         BOOST_CHECK_EQUAL("Tim", comments.data[1].author);
         BOOST_CHECK_EQUAL("Hi Ben", comments.data[1].text);
     }
+}
+
+std::string parse_skip_first(const std::string &json)
+{
+    Parser parser(json.data(), json.data() + json.size());
+    skip_value(parser);
+    parser.next();
+    return parser.next().str;
+}
+
+BOOST_AUTO_TEST_CASE(skip)
+{
+    BOOST_CHECK_EQUAL("5", parse_skip_first("4, 5"));
+    BOOST_CHECK_EQUAL("5", parse_skip_first("[], 5"));
+    BOOST_CHECK_EQUAL("5", parse_skip_first("[1, 2, 3], 5"));
+    BOOST_CHECK_EQUAL("5", parse_skip_first("[1, [2, 3]], 5"));
+    BOOST_CHECK_EQUAL("5", parse_skip_first("{}, 5"));
+    BOOST_CHECK_THROW(parse_skip_first(""), ParseError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -39,25 +39,5 @@ namespace json
         Token() : type(END), str() {}
         Token(Type type) : type(type), str() {}
         Token(Type type, std::string &&str) : type(type), str(std::move(str)) {}
-
-        /**True if type is a value, or the start of a value.
-         * ARR_START, OBJ_START, NUMBER, STRING, TRUE_VAL, FALSE_VAL, NULL_VAL
-         */
-        bool is_val()const
-        {
-            switch (type)
-            {
-            case ARR_START:
-            case OBJ_START:
-            case NUMBER:
-            case STRING:
-            case TRUE_VAL:
-            case FALSE_VAL:
-            case NULL_VAL:
-                return true;
-            default:
-                return false;
-            }
-        }
     };
 }
