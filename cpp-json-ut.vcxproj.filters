@@ -21,5 +21,8 @@
     <ClCompile Include="tests\Copy.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="tests\Time.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

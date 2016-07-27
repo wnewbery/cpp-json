@@ -158,6 +158,7 @@
     <ClCompile Include="tests\Main.cpp" />
     <ClCompile Include="tests\Parser.cpp" />
     <ClCompile Include="tests\Reader.cpp" />
+    <ClCompile Include="tests\Time.cpp" />
     <ClCompile Include="tests\Writer.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <string>
 #include <sstream>
+#include "Time.hpp"
 namespace json
 {
     /**@brief Writes JSON tokens to a string buffer.
@@ -197,6 +198,14 @@ namespace json
 
     inline void write_json(Writer &writer, const char *x) { writer.do_value(x); }
     inline void write_json(Writer &writer, const std::string &x) { writer.do_value(x.c_str()); }
+
+    /**Write a time_t as a string.
+     * This is not a write_json overload because time_t is a typedef for one of the int types.
+     */
+    inline void write_json_time(Writer &writer, time_t t)
+    {
+        writer.do_value(time_to_iso_str(t).c_str());
+    }
 
     /**Generic template for arrays. Writes a JSON array, using write_json for each element.
      * 

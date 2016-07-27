@@ -1,5 +1,6 @@
 #pragma once
 #include "Parser.hpp"
+#include "Time.hpp"
 #include <unordered_map>
 #include <limits>
 namespace json
@@ -230,6 +231,14 @@ namespace json
     void read_json(Parser &parser, T *map_container)
     {
         read_json_map(parser, map_container);
+    }
+    /**Read a time_t from a string.
+     * This is not a read_json overload because time_t is a typedef for one of the int types.
+     */
+    inline void read_json_time(Parser &parser, time_t *t)
+    {
+        auto str = read_json<std::string>(parser);
+        *t = parse_iso_time(str);
     }
 
     /**Skip past the next value. Works for objects and arrays. */
