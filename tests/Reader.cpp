@@ -42,12 +42,14 @@ struct Comment
 {
     std::string author;
     std::string text;
+    time_t time;
 };
 inline void read_json(Parser &parser, Comment *val)
 {
     static const auto reader = ObjectFieldReader<Comment, IgnoreUnknown>().
         add<decltype(Comment::author), &Comment::author>("author").
-        add<decltype(Comment::text), &Comment::text>("text");
+        add<decltype(Comment::text), &Comment::text>("text").
+        add<decltype(Comment::time), &Comment::time, read_json_time>("time");
     reader.read(parser, val);
 }
 
@@ -200,8 +202,8 @@ BOOST_AUTO_TEST_CASE(obj_complex)
         "   \"total\": 102,"
         "   \"first\": 100,"
         "   \"data\": ["
-        "       {\"author\": \"Ben\", \"text\": \"Hi\"},"
-        "       {\"author\": \"Tim\", \"text\": \"Hi Ben\", \"admin\": true}"
+        "       {\"author\": \"Ben\", \"time\": \"2016-06-24T09:47:55Z\", \"text\": \"Hi\"},"
+        "       {\"author\": \"Tim\", \"time\": \"2016-06-24T09:47:55Z\", \"text\": \"Hi Ben\", \"admin\": true}"
         "   ]"
         "}";
     auto comments = read_json<ResponsePage<Comment>>(json);
@@ -213,8 +215,10 @@ BOOST_AUTO_TEST_CASE(obj_complex)
     {
         BOOST_CHECK_EQUAL("Ben", comments.data[0].author);
         BOOST_CHECK_EQUAL("Hi", comments.data[0].text);
+        BOOST_CHECK_EQUAL(1466761675, comments.data[0].time);
         BOOST_CHECK_EQUAL("Tim", comments.data[1].author);
         BOOST_CHECK_EQUAL("Hi Ben", comments.data[1].text);
+        BOOST_CHECK_EQUAL(1466761675, comments.data[1].time);
     }
 }
 

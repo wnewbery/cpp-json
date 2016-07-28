@@ -171,7 +171,7 @@ namespace json
         read_json(json, &tmp);
         return tmp;
     }
-    
+
     /**Read from parser into an instance of type T, and return it. */
     template<typename T>
     T read_json(Parser &parser)
@@ -180,7 +180,7 @@ namespace json
         read_json(parser, &tmp);
         return tmp;
     }
-    
+
     /**Read into a container that has push_back.*/
     template<typename T> void read_json_array(Parser &parser, T *container)
     {
@@ -288,7 +288,7 @@ namespace json
             size_t index;
         };
         template<typename T>
-        using Fields =  std::unordered_map<std::string, Field<T>>;
+        using Fields = std::unordered_map<std::string, Field<T>>;
     }
 
     struct ErrorUnknown
@@ -313,13 +313,6 @@ namespace json
         typedef detail::Field<T> Field;
         typedef typename Field::ReadField ReadField;
         typedef detail::Fields<T> Fields;
-
-        template <typename U, U T::*ptr>
-        static void do_read_field(Parser &parser, T *obj)
-        {
-            U *field = &(obj->*ptr);
-            read_json(parser, field);
-        }
 
         ObjectFieldReader() : fields()
         {
@@ -347,6 +340,19 @@ namespace json
             return add(name, do_read_field<U, ptr>);
         }
 
+        /**Adds a property with a specified "void (Parser &parser, U *obj)" function
+         * to convert the value.
+         * e.g: @code
+         * static auto const reader = ObjectFieldReader<MyType>().
+         *      add<time_t, &MyType::time, read_json_time>("time");
+         * @endcode
+         */
+        template<typename U, U T::*ptr, void(*read_func)(Parser &parser, U *out)>
+        ObjectFieldReader<T, ErrorPolicy, N + 1> add(const std::string &name)
+        {
+            return add(name, do_read_field<U, ptr, read_func>);
+        }
+        /**Adds a property with a specified "void (Parser &parser, T *obj)" read function.*/
         ObjectFieldReader<T, ErrorPolicy, N + 1> add(const std::string &name, ReadField read)
         {
             auto index = fields.size();
@@ -391,6 +397,19 @@ namespace json
             if (count != N) throw ParseError("Missing keys");
         }
     private:
+        template <typename U, U T::*ptr>
+        static void do_read_field(Parser &parser, T *obj)
+        {
+            U *field = &(obj->*ptr);
+            read_json(parser, field);
+        }
+        template <typename U, U T::*ptr, void(*read_func)(Parser &parser, U *out)>
+        static void do_read_field(Parser &parser, T *obj)
+        {
+            U *field = &(obj->*ptr);
+            read_func(parser, field);
+        }
+
         Fields fields;
     };
 }
