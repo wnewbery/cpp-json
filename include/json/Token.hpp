@@ -21,6 +21,8 @@ namespace json
             KEY_SEP,
             /** ',' */
             ELEMENT_SEP,
+            /**Integer number.*/
+            INTEGER,
             /**Number, string stored in str.*/
             NUMBER,
             /**String, value (Without quotes) stored in str.*/
@@ -35,9 +37,16 @@ namespace json
 
         Type type;
         std::string str;
+        union
+        {
+            long long val_int;
+            double val_num;
+        };
 
         Token() : type(END), str() {}
         Token(Type type) : type(type), str() {}
-        Token(Type type, std::string &&str) : type(type), str(std::move(str)) {}
+        Token(std::string &&str) : type(STRING), str(std::move(str)) {}
+        Token(long long x) : type(INTEGER), val_int(x) {}
+        Token(double x) : type(NUMBER), val_num(x) {}
     };
 }

@@ -2,6 +2,7 @@
 #include "Token.hpp"
 #include <stdexcept>
 #include <sstream>
+#include <limits>
 #include <cassert>
 #include <cstring>
 namespace json
@@ -61,7 +62,7 @@ namespace json
             case '8':
             case '9':
             case '-':
-                return parse_num();
+                return do_next_number();
             default: parse_error("Unexpected content");
             }
         }
@@ -89,6 +90,68 @@ namespace json
                 return true;
             }
             else return false;
+        }
+        /**Skip the rest of a quoted string. */
+        void skip_remaining_str()
+        {
+            while (p < end)
+            {
+                if (*p == '"')
+                {
+                    ++p;
+                    return;
+                }
+                else if (*p == '\\')
+                {
+                    ++p;
+                    if (p == end) break;
+                    ++p;
+                }
+                else ++p;
+            }
+            parse_error("Failed to find end of string");
+        }
+        /**Read the next string, but discard the contents. */
+        void skip_next_str()
+        {
+            skip_ws();
+            if (p >= end || *p != '"') parse_error("Expected string");
+            skip_remaining_str();
+        }
+
+        /**Read the next string. */
+        std::string next_str()
+        {
+            std::string tmp;
+            next_str(&tmp);
+            return tmp;
+        }
+        void next_str(std::string *out)
+        {
+            skip_ws();
+            if (p >= end || *p != '"') parse_error("Expected string");
+            parse_str(out);
+        }
+        template<typename T> T next_int()
+        {
+            skip_ws();
+            if (p >= end) parse_error("Expected int");
+            return do_next_int<T>();
+        }
+        template<typename T> T next_uint()
+        {
+            skip_ws();
+            if (p >= end) parse_error("Expected unsigned int");
+            return do_next_positive_int<T>();
+        }
+
+        double next_double()
+        {
+            skip_ws();
+            if (p >= end) parse_error("Expected int");
+            auto start = p;
+            if (*p == '-') ++p;
+            return complete_next_float(start);
         }
     private:
         const char *begin, *p, *end;
@@ -157,53 +220,147 @@ namespace json
                 return false;
             }
         }
-        Token parse_num()
+
+        template<typename T>
+        T do_next_int()
         {
-            assert(is_digit(*p) || *p == '-');
-            auto first = p;
-            if (*p == '-') ++p;
-            while (p < end && is_digit(*p)) ++p;
+            assert(p < end);
+            if (*p == '-')
+            {
+                ++p;
+                if (p == end) parse_error("Unexpected end");
+                return do_next_negative_int<T>();
+            }
+            else return do_next_positive_int<T>();
+        }
+
+        template<typename T>
+        T do_next_positive_int()
+        {
+            typedef std::numeric_limits<T> limits;
+            assert(p < end);
+            if (!is_digit(*p)) parse_error("Expected int");
+            T x = 0;
+            do
+            {
+                int y = *p - '0';
+                if (x > limits::max() / 10) parse_error("Overflow");
+                if (x == limits::max() / 10 && y > (int)(limits::max() % 10)) parse_error("Overflow");
+
+                x *= 10;
+                x += y;
+                ++p;
+            }
+            while (p < end && is_digit(*p));
+            return x;
+        }
+        template<typename T>
+        T do_next_negative_int()
+        {
+            typedef std::numeric_limits<T> limits;
+            typedef std::make_unsigned<T>::type ut;
+            assert(p < end);
+            if (!is_digit(*p)) parse_error("Expected int");
+            T x = 0;
+            do
+            {
+                int y = *p - '0';
+                if (x < limits::min() / 10) parse_error("Overflow");
+                if (x == limits::min() / 10 && y > (int)(((ut)limits::min()) % 10)) parse_error("Overflow");
+                x *= 10;
+                x -= y;
+                ++p;
+            }
+            while (p < end && is_digit(*p));
+            return x;
+        }
+
+        double complete_next_float(const char *start)
+        {
+            assert(p < end && start <= p);
+            while(p < end && is_digit(*p)) ++p;
             if (p < end && *p == '.')
             {
                 ++p;
                 while (p < end && is_digit(*p)) ++p;
             }
-            return { Token::NUMBER, { first, p }};
+            if (p < end && (*p == 'e' || *p == 'E'))
+            {
+                ++p;
+                if (p < end && (*p == '+' || *p == '-'))
+                {
+                    ++p;
+                    while (p < end && is_digit(*p)) ++p;
+                }
+            }
+            //using stod for now
+            std::string str(start, p);
+            size_t count;
+            try
+            {
+                auto x = std::stod(str, &count);
+                if (count != str.size()) parse_error(str + " is not a valid number");
+                return x;
+            }
+            catch (const std::exception &)
+            {
+                parse_error("Expected number");
+            }
+        }
+
+        Token do_next_number()
+        {
+            auto start = p;
+            long long x = do_next_int<long long>();
+            if (p >= end || (*p != '.' && *p != 'e' && *p != 'E'))
+            {
+                return Token(x);
+            }
+            else
+            {
+                ++p;
+                if (p >= end) parse_error("Unexpected end");
+                return Token(complete_next_float(start));
+            }
         }
 
         //TODO: Does not handle escape codes, or any illegal bytes, just goes to next "
-        Token parse_str()
+        void parse_str(std::string *out)
         {
             assert(*p == '"');
             ++p;
-            std::string buf;
             while (p < end && *p != '"')
             {
-                if (*p == '\\')
+                if (*p != '\\')
+                {
+                    *out += *p;
+                    ++p;
+                }
+                else
                 {
                     if (++p == end) parse_error("End of string not found");
                     switch (*p)
                     {
-                    case 'n': buf += '\n'; ++p; break;
-                    case 'r': buf += '\r'; ++p; break;
-                    case '"': buf += '\"'; ++p; break;
-                    case 'b': buf += '\b'; ++p; break;
-                    case 'f': buf += '\f'; ++p; break;
-                    case 't': buf += '\t'; ++p; break;
-                    case '\'': buf += '\''; ++p; break;
-                    case '\\': buf += '\\'; ++p; break;
-                    case 'u': decode_unicode(&buf); break;
+                    case 'n': *out += '\n'; ++p; break;
+                    case 'r': *out += '\r'; ++p; break;
+                    case '"': *out += '\"'; ++p; break;
+                    case 'b': *out += '\b'; ++p; break;
+                    case 'f': *out += '\f'; ++p; break;
+                    case 't': *out += '\t'; ++p; break;
+                    case '\'': *out += '\''; ++p; break;
+                    case '\\': *out += '\\'; ++p; break;
+                    case 'u': decode_unicode(out); break;
                     }
-                }
-                else
-                {
-                    buf += *p;
-                    ++p;
                 }
             }
             if (p == end) parse_error("End of string not found");
             ++p; // "
-            return { Token::STRING, std::move(buf)};
+        }
+        Token parse_str()
+        {
+            Token ret = Token::STRING;
+            parse_str(&ret.str);
+            return ret;
         }
 
         void decode_unicode(std::string *buf)

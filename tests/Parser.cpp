@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(test)
     {
         auto tok = parse_single("-500.5");
         BOOST_CHECK_EQUAL(Token::NUMBER, tok.type);
-        BOOST_CHECK_EQUAL("-500.5", tok.str);
+        BOOST_CHECK_EQUAL(-500.5, tok.val_num);
     }
     {
         auto tok = parse_single("\"Hello World\"");

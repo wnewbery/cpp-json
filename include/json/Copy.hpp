@@ -51,7 +51,8 @@ namespace json
         {
         case Token::ARR_START: detail::copy_arr(writer, parser); return;
         case Token::OBJ_START: detail::copy_obj(writer, parser); return;
-        case Token::NUMBER: writer.raw_value(tok.str); return;
+        case Token::INTEGER: writer.value(tok.val_int); return;
+        case Token::NUMBER: writer.value(tok.val_num); return;
         case Token::STRING: writer.value(tok.str); return;
         case Token::TRUE_VAL: writer.value(true); return;
         case Token::FALSE_VAL: writer.value(false); return;

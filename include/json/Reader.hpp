@@ -7,53 +7,6 @@ namespace json
 {
     namespace detail
     {
-        //C++ still does not have great string to int/float support
-        /**Like std::stoll for base 10, but must consume entire string.*/
-        inline long long str_to_longlong(const std::string &str)
-        {
-            size_t count;
-            auto x = std::stoll(str, &count, 10);
-            if (count != str.size()) throw std::invalid_argument(str + " is not a valid integer");
-            return x;
-        }
-        inline unsigned long long str_to_ulonglong(const std::string &str)
-        {
-            size_t count;
-            auto x = std::stoull(str, &count, 10);
-            if (count != str.size()) throw std::invalid_argument(str + " is not a valid integer");
-            return x;
-        }
-
-        template<typename T> T str_to_int(const std::string &str)
-        {
-            auto x = str_to_longlong(str);
-            if (x >= std::numeric_limits<T>::min() && x <= std::numeric_limits<T>::max())
-                return (T)x;
-            else throw std::out_of_range(str + " is out of range");
-        }
-        template<typename T> T str_to_uint(const std::string &str)
-        {
-            auto x = str_to_ulonglong(str);
-            if (x <= std::numeric_limits<T>::max())
-                return (T)x;
-            else throw std::out_of_range(str + " is out of range");
-        }
-
-        inline double str_to_double(const std::string &str)
-        {
-            size_t count;
-            auto x = std::stod(str, &count);
-            if (count != str.size()) throw std::invalid_argument(str + " is not a valid number");
-            return x;
-        }
-        inline float str_to_float(const std::string &str)
-        {
-            size_t count;
-            auto x = std::stof(str, &count);
-            if (count != str.size()) throw std::invalid_argument(str + " is not a valid number");
-            return x;
-        }
-
         template<typename T>
         auto has_push_back_impl(int) -> decltype(
             std::declval<T>().push_back(std::declval<typename T::value_type>()),
@@ -71,15 +24,11 @@ namespace json
 
     template<typename T> void read_json_int(Parser &parser, T *out)
     {
-        auto tok = parser.next();
-        if (tok.type == Token::NUMBER) *out = detail::str_to_int<T>(tok.str);
-        else throw ParseError("Expected integer");
+        *out = parser.next_int<T>();
     }
     template<typename T> void read_json_uint(Parser &parser, T *out)
     {
-        auto tok = parser.next();
-        if (tok.type == Token::NUMBER) *out = detail::str_to_uint<T>(tok.str);
-        else throw ParseError("Expected integer");
+        *out = parser.next_uint<T>();
     }
 
 
@@ -127,15 +76,11 @@ namespace json
 
     inline void read_json(Parser &parser, float *x)
     {
-        auto tok = parser.next();
-        if (tok.type == Token::NUMBER) *x = detail::str_to_float(tok.str);
-        else throw ParseError("Expected number");
+        *x = (float)parser.next_double();
     }
     inline void read_json(Parser &parser, double *x)
     {
-        auto tok = parser.next();
-        if (tok.type == Token::NUMBER) *x = detail::str_to_double(tok.str);
-        else throw ParseError("Expected number");
+        *x = parser.next_double();
     }
 
     inline void read_json(Parser &parser, bool *x)
@@ -148,9 +93,7 @@ namespace json
 
     inline void read_json(Parser &parser, std::string *str)
     {
-        auto tok = parser.next();
-        if (tok.type == Token::STRING) *str = tok.str;
-        else throw ParseError("Expected string");
+        parser.next_str(str);
     }
 
     /**Read from JSON string into out. */
@@ -269,6 +212,7 @@ namespace json
             case Token::FALSE_VAL:
             case Token::NULL_VAL:
             case Token::STRING:
+            case Token::INTEGER:
             case Token::NUMBER:
                 break;
             default: throw ParseError("Expected value");
@@ -368,12 +312,12 @@ namespace json
             auto tok = parser.next();
             if (tok.type != Token::OBJ_START) throw ParseError("Expected object start");
             if (parser.try_next_obj_end()) throw ParseError("Missing keys, unexpected empty object");
+            std::string key;
             do
             {
                 //key
-                tok = parser.next();
-                if (tok.type != Token::STRING) throw ParseError("Expected string key");
-                auto key = std::move(tok.str);
+                key.clear();
+                parser.next_str(&key);
                 //find field
                 auto field = fields.find(key);
                 //':' seperator
