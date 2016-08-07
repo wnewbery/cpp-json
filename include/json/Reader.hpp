@@ -309,8 +309,7 @@ namespace json
         {
             bool visited[N] = { 0 };
             size_t count = 0;
-            auto tok = parser.next();
-            if (tok.type != Token::OBJ_START) throw ParseError("Expected object start");
+            parser.next_obj_start();
             if (parser.try_next_obj_end()) throw ParseError("Missing keys, unexpected empty object");
             std::string key;
             do
@@ -321,8 +320,7 @@ namespace json
                 //find field
                 auto field = fields.find(key);
                 //':' seperator
-                tok = parser.next();
-                if (tok.type != Token::KEY_SEP) throw ParseError("Expected ':'");
+                parser.next_key_sep();
                 //read field
                 if (field != fields.end())
                 {
@@ -332,13 +330,12 @@ namespace json
                     ++count;
                 }
                 else ErrorPolicy()(parser, key);
-                
-                //next field
-                tok = parser.next(); // ':' or '}'
             }
-            while (tok.type == Token::ELEMENT_SEP);
-            if (tok.type != Token::OBJ_END) throw ParseError("Expected object end");
-            if (count != N) throw ParseError("Missing keys");
+            while (parser.next_obj_el());
+            if (count != N)
+            {
+                throw ParseError("Missing keys");
+            }
         }
     private:
         template <typename U, U T::*ptr>

@@ -79,18 +79,6 @@ namespace json
             }
             else return false;
         }
-        /**If the next token would be OBJ_END, consume it and return true.*/
-        bool try_next_obj_end()
-        {
-            if (p > end) parse_error("Unexpected end of input");
-            skip_ws();
-            if (p < end && *p == '}')
-            {
-                ++p;
-                return true;
-            }
-            else return false;
-        }
         /**Skip the rest of a quoted string. */
         void skip_remaining_str()
         {
@@ -153,6 +141,54 @@ namespace json
             if (*p == '-') ++p;
             return complete_next_float(start);
         }
+
+
+        //Objects
+        void next_obj_start() { next_chr<'{'>(); }
+        /**Next ':' key-value seperator.*/
+        void next_key_sep()
+        {
+            skip_ws();
+            if (p < end && *p == ':')
+            {
+                ++p;
+            }
+            else parse_error("Expected ':'");
+        }
+        /**true if next is ',', false if '}', else error.*/
+        bool next_obj_el()
+        {
+            skip_ws();
+            if (p < end)
+            {
+                if (*p == ',')
+                {
+                    ++p;
+                    return true;
+                }
+                if (*p == '}')
+                {
+                    ++p;
+                    return false;
+                }
+            }
+            parse_error("Expected ',' or '}' after object value");
+        }
+        /**If the next token would be OBJ_END, consume it and return true.*/
+        bool try_next_obj_end()
+        {
+            skip_ws();
+            if (p < end)
+            {
+                if (*p == '}')
+                {
+                    ++p;
+                    return true;
+                }
+                else return false;
+            }
+            parse_error("Unexpected end of input");
+        }
     private:
         const char *begin, *p, *end;
         const char *line_start;
@@ -163,11 +199,22 @@ namespace json
             throw ParseError(line_num, (int)(p - line_start), msg);
         }
 
+        template<char c>
+        void next_chr()
+        {
+            skip_ws();
+            if (p < end && *p == c)
+            {
+                ++p;
+            }
+            else parse_error(std::string("Expected ") + c);
+        }
+
         template<size_t N>
         void consume_str(const char (&str)[N])
         {
             assert(p[0] == str[0]);
-            if (p + N - 1<= end && memcmp(p + 1, str + 1, N - 2) == 0)
+            if (p + N - 1 <= end && memcmp(p + 1, str + 1, N - 2) == 0)
             {
                 p += N - 1;
             }
