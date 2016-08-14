@@ -293,9 +293,7 @@ namespace json
                 int y = *p - '0';
                 if (x > limits::max() / 10) parse_error("Overflow");
                 if (x == limits::max() / 10 && y > (int)(limits::max() % 10)) parse_error("Overflow");
-
-                x *= 10;
-                x += y;
+                x = (T)(x * 10 + y);
                 ++p;
             }
             while (p < end && is_digit(*p));
@@ -305,7 +303,7 @@ namespace json
         T do_next_negative_int()
         {
             typedef std::numeric_limits<T> limits;
-            typedef std::make_unsigned<T>::type ut;
+            typedef typename std::make_unsigned<T>::type ut;
             assert(p < end);
             if (!is_digit(*p)) parse_error("Expected int");
             T x = 0;
@@ -314,8 +312,7 @@ namespace json
                 int y = *p - '0';
                 if (x < limits::min() / 10) parse_error("Overflow");
                 if (x == limits::min() / 10 && y > (int)(((ut)limits::min()) % 10)) parse_error("Overflow");
-                x *= 10;
-                x -= y;
+                x = (T)(x * 10 - y);
                 ++p;
             }
             while (p < end && is_digit(*p));
